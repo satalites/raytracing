@@ -25,7 +25,7 @@ userLonROI = [-118.444891; -118.444891; -118.440787; -118.440787];
 % cait note: VERY similar to the buiding ROI. why the difference?
 
 % Spacing between users (m)
-spacingMeters = 20;
+spacingMeters = 0.5;
 
 % this is what will create our polygon! 
 ROI = geopolyshape(buildingLatROI, buildingLonROI);
@@ -77,11 +77,9 @@ lonPoints = max(1, floor(lonRange / lonSpacing) + 1);
 
 % beginning at the user's minimum lat or lon, generate however many points
 % specified by latPoints 
-% cait note: can we not set the end point as just userLatMax or userLonMax?
+% 
 latGrid = linspace(userLatMin, userLatMin + (latPoints-1)*latSpacing, latPoints);
 lonGrid = linspace(userLonMin, userLonMin + (lonPoints-1)*lonSpacing, lonPoints);
-
-% now, we want to take those points and create a grid
 [lonMesh, latMesh] = meshgrid(lonGrid, latGrid);
 userPositions = [latMesh(:), lonMesh(:)];
 numUsers = size(userPositions, 1);
@@ -89,72 +87,61 @@ numUsers = size(userPositions, 1);
 fprintf('\nStarting ray tracing analysis for %d users with spacing of %.1f meters...\n', numUsers, spacingMeters);
 rayProperties = struct();
 
-% now we will iterate through all users and begin ray tracing!
-
-for userIdx = 1:numUsers
-    userLat = userPositions(userIdx, 1);
-    userLon = userPositions(userIdx, 2);
-    % earlier, we set a location for our transmitter. now, we collect the
-    % lat/lon position of our user and set our receive location!
-    rxUser = rxsite(Latitude=userLat, Longitude=userLon);
-
-    % perform ray trace
-    rays = raytrace(tx, rxUser, pm);
-    % extract the propagation paths from the cell array
-    userRays = rays{1};
-
-    % let's take a peek at what's happening !!
-    show(tx)
-    show(rxUser)
-    if ~isempty(userRays)
-        plot(userRays)
-    end
-
-    % from here on out, we're going to set up data saving!
-    % sort by path loss
-    if ~isempty(userRays)
-        [~, sortedIdx] = sort([userRays.PathLoss], 'ascend');
-        topRayIndices = sortedIdx(1:min(5, numel(userRays)));
-    else
-        topRayIndices = [];
-    end
-
-    % Calculate grid coordinates (row, col)
-    [~, rowIdx] = min(abs(latGrid - userLat));
-    [~, colIdx] = min(abs(lonGrid - userLon));
-
-    % store properties for each ray
-    userField = sprintf('User_%d', userIdx);
-    rayProperties.(userField) = struct('RayIdx', {}, 'AoD_Az', {}, 'AoD_El', {}, ...
-        'AoA_Az', {}, 'AoA_El', {}, 'PhaseShift', {}, ...
-        'Position', {}, 'PathLoss', {}, 'GridCoord', {});
-
-    for k = 1:length(topRayIndices)
-        rayIdx = topRayIndices(k);
-        ray = userRays(rayIdx);
-        AoD = ray.AngleOfDeparture;
-        AoA = ray.AngleOfArrival;
-
-        rayProps = struct('RayIdx', rayIdx, ...
-             'AoD_Az', AoD(1), ...
-             'AoD_El', AoD(2), ...
-             'AoA_Az', AoA(1), ...
-             'AoA_El', AoA(2), ...
-             'PhaseShift', ray.PhaseShift, ...
-             'Position', [userLat, userLon], ...
-             'PathLoss', ray.PathLoss, ...
-             'GridCoord', [rowIdx, colIdx]);
-        rayProperties.(userField)(k) = rayProps;
-    end
-
-    fprintf('Completed ray tracing for User %d of %d\n', userIdx, numUsers);
-end
-
-% save data
-save('spacedGridRayProperties.mat', '-struct', 'rayProperties');
-save('userGridInfo.mat', 'userPositions', 'latPoints', 'lonPoints', 'spacingMeters', ...
-    'latGrid', 'lonGrid', 'tx');
-
-clear viewer
-set(0, 'DefaultFigureVisible', 'on');
-fprintf('\nAll operations completed.\n');
+% TODO: go through entirety of code again to fully understand
+% 
+% for userIdx = 1:numUsers
+%     userLat = userPositions(userIdx, 1);
+%     userLon = userPositions(userIdx, 2);
+%     rxUser = rxsite(Latitude=userLat, Longitude=userLon);
+% 
+%     % perform ray trace
+%     rays = raytrace(tx, rxUser, pm);
+%     userRays = rays{1};
+% 
+%     % sort by path loss
+%     if ~isempty(userRays)
+%         [~, sortedIdx] = sort([userRays.PathLoss], 'ascend');
+%         topRayIndices = sortedIdx(1:min(5, numel(userRays)));
+%     else
+%         topRayIndices = [];
+%     end
+% 
+%     % Calculate grid coordinates (row, col)
+%     [~, rowIdx] = min(abs(latGrid - userLat));
+%     [~, colIdx] = min(abs(lonGrid - userLon));
+% 
+%     % store properties for each ray
+%     userField = sprintf('User_%d', userIdx);
+%     rayProperties.(userField) = struct('RayIdx', {}, 'AoD_Az', {}, 'AoD_El', {}, ...
+%         'AoA_Az', {}, 'AoA_El', {}, 'PhaseShift', {}, ...
+%         'Position', {}, 'PathLoss', {}, 'GridCoord', {});
+% 
+%     for k = 1:length(topRayIndices)
+%         rayIdx = topRayIndices(k);
+%         ray = userRays(rayIdx);
+%         AoD = ray.AngleOfDeparture;
+%         AoA = ray.AngleOfArrival;
+% 
+%         rayProps = struct('RayIdx', rayIdx, ...
+%              'AoD_Az', AoD(1), ...
+%              'AoD_El', AoD(2), ...
+%              'AoA_Az', AoA(1), ...
+%              'AoA_El', AoA(2), ...
+%              'PhaseShift', ray.PhaseShift, ...
+%              'Position', [userLat, userLon], ...
+%              'PathLoss', ray.PathLoss, ...
+%              'GridCoord', [rowIdx, colIdx]);
+%         rayProperties.(userField)(k) = rayProps;
+%     end
+% 
+%     fprintf('Completed ray tracing for User %d of %d\n', userIdx, numUsers);
+% end
+% 
+% % save data
+% save('spacedGridRayProperties.mat', '-struct', 'rayProperties');
+% save('userGridInfo.mat', 'userPositions', 'latPoints', 'lonPoints', 'spacingMeters', ...
+%     'latGrid', 'lonGrid', 'tx');
+% 
+% clear viewer
+% set(0, 'DefaultFigureVisible', 'on');
+% fprintf('\nAll operations completed.\n');
