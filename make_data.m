@@ -25,7 +25,7 @@ userLonROI = [-118.444891; -118.444891; -118.440787; -118.440787];
 % cait note: VERY similar to the buiding ROI. why the difference?
 
 % Spacing between users (m)
-spacingMeters = 20;
+spacingMeters = 0.5;
 
 % this is what will create our polygon! 
 ROI = geopolyshape(buildingLatROI, buildingLonROI);
@@ -104,11 +104,11 @@ for userIdx = 1:numUsers
     userRays = rays{1};
 
     % let's take a peek at what's happening !!
-    show(tx)
-    show(rxUser)
-    if ~isempty(userRays)
-        plot(userRays)
-    end
+    % show(tx)
+    % show(rxUser)
+    % if ~isempty(userRays)
+    %     plot(userRays)
+    % end
 
     % from here on out, we're going to set up data saving!
     % sort by path loss
