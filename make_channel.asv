@@ -1,0 +1,96 @@
+% now we begin to make the channel!!
+% starting off, let's set up our data
+% put the file into data
+data = load('spacedGridRayProperties.mat');
+% from data, separate them under each user
+users = fieldnames(data);
+
+% okay, okay, now let's look at each user! (the important part)
+for i = 1:numel(users)
+    currentUser = users{i};
+    userData = data.(currentUser); %i need to make this less ugly
+    
+    N = numel(userData); % number of rays, if 0 we don't care about it
+    if N == 0
+        continue; % i feel there must be a better way
+    end
+
+    % Extract ray properties
+    % delays = zeros(1, N); % unclear if we'll use this but surely we will
+    % eventually...
+    gains = -[userData.PathLoss];%is this already in db
+    AoDaz = [userData.AoD_Az];
+    AoDel = [userData.AoD_El];
+    AoAaz = [userData.AoA_Az];
+    AoAel = [userData.AoA_El];
+
+    % great, now let's set up the channel itself before populating!
+    channel = nrCDLChannel;
+    channel.DelayProfile = 'Custom';
+    channel.CarrierFrequency = 28e9; % this is what i got from the example code
+
+    % antenna time (woop woop)
+    % TX array (currently a uniform linear one!)
+    channel.TransmitAntennaArray.Size = [3 1 1 1 1]; 
+    channel.TransmitAntennaArray.ElementSpacing = [0 0.5 0 0];  % in wavelengths apparently
+    channel.TransmitAntennaArray.PolarizationAngles = [0 90];  % [vertical; horizontal]
+
+    % RX array (also current uniform linear)
+    channel.ReceiveAntennaArray.Size = [3 1 1 1 1];
+    channel.ReceiveAntennaArray.ElementSpacing = [0 0.5 0 0];
+    channel.ReceiveAntennaArray.PolarizationAngles = [0 90];
+
+    % now  we can start assigning the actual values
+    % channel.PathDelays = delays; %surely. surely this will be used
+    channel.AveragePathGains = gains;
+    channel.AnglesAoD = reshape([AoDaz; AoDel], 1, []);
+    channel.AnglesAoA = reshape([AoAaz; AoAel], 1, []);
+
+    % test
+    % x = randn(14, 8);  % example signal
+    % y = channel(x);
+
+    fprintf("channel made for user: %s\n", currentUser);
+end
+
+
+
+
+
+
+
+
+
+% % great, now let's set up the channel itself before populating!
+% channel = nrCDLChannel; %nrCDL - clustered delay line
+% channel.DelayProfile = 'Custom'; % because we want our own values!
+% channel.CarrierFrequency = 28e9; % matches the frequency from the starter code i got
+% 
+% % set up tx and rx array!
+% % TX array (currently a uniform linear one!)
+% channel.TransmitAntennaArray.Size = [3 1 1 1 1]; 
+% channel.TransmitAntennaArray.ElementSpacing = [0 0.5 0 0];  % in wavelengths apparently
+% channel.TransmitAntennaArray.PolarizationAngles = [0 90];  % [vertical; horizontal]
+% 
+% % RX array (also current uniform linear)
+% channel.ReceiveAntennaArray.Size = [3 1 1 1 1];
+% channel.ReceiveAntennaArray.ElementSpacing = [0 0.5 0 0];
+% channel.ReceiveAntennaArray.PolarizationAngles = [0 90];
+% 
+% % now we want to get the values from the data!
+% N = numel(userData); %thanks matlab
+% delays = zeros(1, N);
+% % reading through the starter code, i'm going to retain the naming for the
+% % sake of readability but let it be know my variable names would be much
+% % worser
+% gains = -[userData.PathLoss]; %need to check if in db or not? negatiev or not?
+% AoDaz = [userData.AoD_Az]; 
+% AoDel = [userData.AoD_El];
+% AoAaz = [userData.AoA_Az];
+% AoAel = [userData.AoA_El];
+% 
+% % stick them into the custom channel model!
+% channel.PathDelays = delays;
+% channel.AveragePathGains = gains;
+% channel.AnglesAoD = [AoDaz; AoDel];
+% channel.AnglesAoA = [AoAaz; AoAel];
